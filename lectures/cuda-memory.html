@@ -1,0 +1,451 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>CUDA Memory</title>
+
+<link rel="stylesheet" href="../reveal.js/dist/reset.css">
+<link rel="stylesheet" href="../reveal.js/dist/reveal.css">
+<link rel="stylesheet" href="../reveal.js/dist/theme/white.css" id="theme">
+<link rel="stylesheet" href="../reveal.js/css/local.css">
+
+<!-- Theme used for syntax highlighting of code -->
+<link rel="stylesheet" href="../reveal.js/lib/css/vs.css">
+
+</head>
+
+<!-- Start of presentation --> 
+<body>
+<div class="reveal">
+<div class="slides">
+
+  <section>
+
+    <h1 style = "text-transform: none !important">
+        CUDA Memory: Constant, Shared, Unified</h1>
+    <!-- That replies on getting the line break right! -->
+    <!-- 
+    <p>Kevin Stratford</p>
+    <p>kevin@epcc.ed.ac.uk </p> -->
+    <br>
+    <p>Material by: Kevin Stratford, Rupert Nash</p>
+    <img class = "plain" src ="../reveal.js/img/epcc_logo.png" alt = "EPCC Logo" />
+
+  </section>
+
+  <section>
+
+    <h4> CUDA Memory so far...</h4>
+
+    <ul>
+    <li> Global memory </li>
+    <ul class = "inner">
+        <li> Allocated on host</li>
+        <li> Available to both host and device read/write </li>
+    </ul>
+    <li> Local variables in kernels </li>
+    <ul class = "inner">
+       <li> Private on a per thread basis
+       <li> Usually expected to be held in registers </li>
+    </ul>
+    </ul>
+  </section>
+
+  <section>
+    <h4> Other types of memory </h4>
+
+    <ul>
+    <li>Constant cache memory </li>
+    <li>Shared memory</li>
+    <li>Unified memory</li>     
+    </ul>
+  </section>
+
+    <section>
+    <h3>Constant memory </h3>
+    <ul>
+       <li> Read only in kernel</li>
+       <li> No cache coherency mechanism required to support writes
+       <li> Fast and effectively very high bandwidth 
+     </ul>
+     </section>
+     
+  <section>
+    <h4> Schematic: C </h4>
+
+    <p>
+    <pre class = "stretch"><code class = "cpp" data-trim>
+/* Constant data declared at file scope with
+ *  __constant__ memory space qualifier  */
+
+static __constant__ double coeffs[3];
+
+int someHostFunction(...) {
+
+  /* ... assign some values at run time ... */
+
+  double values[3];
+
+  /* ... and before the relevant kernel ... */
+
+  cudaMemcpyToSymbol(coeffs, values, 3*sizeof(double));
+
+  ...
+}
+    </code></pre>
+
+  </section>
+
+
+  <section>
+    <h4> Schematic: C kernel </h4>
+
+    <p>
+    <pre><code class = "cpp" data-trim>
+
+/* Still in the appropriate scope ... */
+
+static __constant__ double coeffs[3];
+
+__global__ void someKernel(...) {
+
+  ...
+
+  /* Reference constant data as usual ... */
+
+  result = coeffs[0]*x + coeffs[1]*y + coeffs[2]*z;
+}
+    </code></pre>
+
+  </section>  
+
+  <section>
+    <h4> Schematic: Fortran </h4>
+
+    <pre class = "stretch"><code class = "fortran" data-trim>
+! Constant variable declared at e.g., module scope
+! with constant attribute
+
+real, constant :: coeffs(3)
+
+contains
+
+subroutine someHostRoutine(...)
+
+  ! ...assign some values at runtime ...
+
+  coeffs(:) = values(1:3)
+
+  ! ...and call relevant kernel ...
+
+end subroutine someHostRoutine
+    </code></pre>
+
+  </section>
+
+  <section>
+    <h4> Schematic: Fortran kernel </h4>
+
+    <p>
+    <pre><code class = "fortran" data-trim>
+! Still in the appropriate scope ...
+
+real, constant :: coeffs(3)
+
+contains
+
+attributes(global) subroutine someKernel(...)
+
+  ! Reference constant data as usual ...
+
+  result = coeffs(1)*x + coeffs(2)*y + coeffs(3)*z
+
+end subroutine someKernel
+
+    </code></pre>
+
+  </section>
+
+  <section>
+    <h4> Constant memory summary </h4>
+
+    <ul>
+    <li> A relatively scarce resource </li>
+    <ul class = "inner">
+       <li> Typically 64 kB in total (can inquire at runtime) </li>
+       <li> No huge look-up tables!
+       <li> Also used for kernel actual arguments (by value)
+    </ul>
+    <li> Any "overflow" will spill to normal global memory
+    <ul class = "inner">
+      <li> ... and accesses will be relatively slow
+    </ul>
+    </ul>
+
+  </section>
+    
+  <section>
+    <h4> Shared Memory </h4>
+
+    <ul>
+      <li> Shared between threads in a block </li>
+      <ul class = "inner">
+	<li> Useful for temporary values, particularly if significant reuse
+	<li> Marshalling data within a block
+	<li> May be used to perform reductions (sum, min, max)
+      </ul>
+      <li> May require care in synchronisation with a block</li>
+      <ul class = "inner">
+	<li> Basic synchonisation is <code>__syncthreads()</code>
+	<li> Many others 
+      </ul>
+      <li> Lifetime of the kernel's blocks</li>
+      <ul class = "inner">
+	<li> Only addressable when a block starts executing</li>
+	<li> Released when a block finishes</li>
+      </ul>
+    </ul>
+  </section>
+
+  <section>
+    <h4>Declaring Shared Memory</h4>
+    <ul>
+      <li> C: via <code>__shared__</code> memory space qualifier</li>
+      <li> Fortran: via <code>shared</code> attribute</li>
+
+      <li> If the size of array is known an compile time, just include the size of
+      array</li>
+      <pre><code class="fortran">
+attributes(global) subroutine reverseElements(d)
+    real, shared :: s(TPB) 
+    ! ... implementation ...
+end subroutine reverseElements
+
+! host code...
+call reverseElements<<< BPG, TPB >>>(data)
+      </code></pre>
+    </ul>
+
+    </section>
+    
+    <section>
+    <h4>Declaring Shared Memory</h4>
+    <ul>
+      <li> C: via <code>__shared__</code> memory space qualifier</li>
+      <li> Fortran: via <code>shared</code> attribute</li>
+      
+      <li>If the size isn't known until runtime, you must supply this
+      at kernel launch with the optional third execution configuration
+      parameter</li>
+
+      <pre><code class="fortran">
+attributes(global) subroutine reverseElements(d)
+    real, shared :: s(THREADS_PER_BLOCK)
+    real, shared :: s(*)
+    ! ... implementation ...
+end subroutine reverseElements
+
+! host code...
+size_bytes = TPB*4
+call reverseElements<<< BPG, TPB, size_bytes >>>(data)
+      </code></pre>
+    </ul>
+
+  </section>
+
+  <section>
+    <h4> Example: Reverse elements in array </h4>
+
+    <!-- Note in the fragment, the two spaces after the end of
+         the <p> tag are the actual indent that appears -->
+
+    <pre><code class = "cpp" data-trim data-noescape>
+/* Reverse elements so that the order 0,1,2,3,...
+ * becomes ...,3,2,1,0
+ * Assume we have one block. */
+
+__global__ void reverseElements(int * myArray) {
+
+  __shared__ int tmp[THREADS_PER_BLOCK];
+
+  int idx = threadIdx.x;
+  tmp[idx] = myArray[idx];
+<p class = "fragment" style = "margin: 0em">  __syncthreads();</p>
+  myArray[THREADS_PER_BLOCK - (idx+1)] = tmp[idx];
+}    
+    </code></pre>
+  </section>
+
+  <section>
+    <h4> Shared Memory Summary </h4>
+
+    <ul>
+    <li> Again, a relatively scarce resource </li>
+    <ul class = "inner">
+       <li> E.g., 50 kB per block
+       <li> Some care may be required (check at runtime)
+    </ul>
+    <li> Various performance considerations
+    <ul class = "inner">
+      <li> E.g., "bank conflicts"
+      <li> Warp divergence related to synchronisation
+    </ul>
+    </ul>
+
+    </section>
+    
+    <section>
+    <h4>Atomic access to memory</h4>
+    <ul>
+      <li>Many algorithms require updates of shared state,
+      e.g. counting zeros in an array (incorrectly!):</li>
+      <pre><code class="cpp">
+__global__ void count_zeros(int N, int const* data, int*total) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (data[i] == 0) {
+    *total += 1;
+  }
+}
+      </code></pre></li>
+      <li>This code needs to read, modify, and write back the data
+      stored at <code>*total</code>.</li>
+      <li>Dealing with this (using the techniques mentioned so far)
+      can be complex.</li>
+    </ul>
+    </section>
+
+    <section>
+    <h4>Atomic access to memory</h4>
+    <ul>
+
+      <li>The hardware provides facilities to read, update, and write
+      back a memory location atomically - i.e. without any other
+      threads interferring
+      <pre><code class="cpp">
+__global__ void count_zeros(int N, int const* data, int*total) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (data[i] == 0) {
+    atomicAdd(total, 1);
+  }
+}
+      </code></pre>
+      </li>
+      <li>Works for built in types with some simple operations - see
+      <a
+      href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#atomic-functions">https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#atomic-functions</a>
+      for the details.</li>
+
+      <li>But this is slow if other threads are also accessing the
+      same address - consider using block shared memory to compute an
+      intermediate value that is applied to the global result via a
+      single atomic.</li>
+
+    </ul>
+    </section>
+
+    <section>
+    <h4>Unified Memory</h4>
+    
+    <small>(NB: this is NOT unified virtual addressing.)</small>
+    
+    <ul>
+       <li>The GPU has a separate memory space from the host CPU</li>
+       <li>Since CUDA 6 and Kepler (compute capability 3.0) this aspect can be largely hidden from
+       the programmer with automatic data movement</li>
+       <li><b>However</b> performance is usually worse than doing it yourself</li>
+       <li>Things get better with CUDA 8 and Pascal (compute
+       capability 6.0) and are now a reasonable starting point</li>
+     </ul>
+     </section>
+     
+     <section>
+     <h4>Adapt an existing CUDA code to unified memory</h4>
+     <ol>
+       <li>Allocate host arrays with <code>cudaMallocManaged</code></li>
+       <li>Remove device pointers and calls to <code>cudaMalloc</code>
+       <li>Remove calls to <code>cudaMemcpy</code></li>
+       <li>In kernels launches, use host arrays instead</li>
+     </ol>
+     <p>But this will be slower</p>
+
+     </section>
+     
+     <section>
+     <h4>Make porting CPU code easier</h4>
+
+     <ol>
+       <li>Allocate key arrays with <code>cudaMallocManaged</code></li>
+
+       <li>Implement kernels and launches</li>
+
+       <li>Profile to see if managed memory is the bottleneck</li>
+
+       <li>Add manual memory management where needed</li>
+     </ol>
+
+     <p> Usually takes less programmer effort to get it working</p>
+     </section>
+     
+     <section>
+     <h4>Unified Memory limitations – Kepler and before</h4>
+     <ul>
+       <li><code>cudaMallocManaged</code> reserves space on GPU</li>
+       <li>Kernel not running:</li>
+       <ul class="inner">
+	 <li>CPU can access any data, that page only moved to main DRAM (page fault – c.f. swap space)</li>
+	 <li>CPU can read/write as necessary</li>
+       </ul>
+       <li>Kernel launch moves any pages changed by CPU to GPU (maybe expensive)</li>
+       <li>Kernel running - CPU cannot access any UM that the kernel
+       touches</li>
+     </ul>
+     </section>
+
+     <section>
+     <h4>Unified Memory limitations – Pascal and after</h4>
+
+     <ul>
+       <li><code>cudaMallocManaged</code> does not allocate on GPU
+       (GPU memory is used more like a cache)</li>
+       <li>Pages allocated on first touch</li>
+       <li>Pages migrated on demand</li>
+       <li>Pages migrated on demand between GPUs</li>
+       <li>No bulk transfer on kernel launch</li>
+       <li>Can give hints to the run time to optimise: <code>cudaMemAdvise</code> / <code>cudaMemPrefetchAsync</code></li>
+     </ul>
+     </section>
+
+     <section>
+     <h4>Unified Memory Summary</h4>
+     <ul>
+       <li>Can simplify first implementation</li>
+       <li>Performance cost high on old systems</li>
+       <li>This is much reduced with Pascal and newer</li>
+     </ul>
+     </section>
+
+</div>
+</div>
+
+<!-- End of presentation -->
+
+<script src="../reveal.js/dist/reveal.js"></script>
+<script src="../reveal.js/plugin/math/math.js"></script>
+<script src="../reveal.js/plugin/highlight/highlight.js"></script>
+
+<script>
+// More info about config & dependencies:
+// - https://github.com/hakimel/reveal.js#configuration
+// - https://github.com/hakimel/reveal.js#dependencies
+Reveal.initialize({
+  controls: false,
+  slideNumber: true,
+  center: false,
+  plugins: [ RevealMath, RevealHighlight ]
+});
+</script>
+
+</body>
+</html>

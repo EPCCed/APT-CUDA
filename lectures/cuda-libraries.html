@@ -1,0 +1,361 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>CUDA Libraries</title>
+
+<link rel="stylesheet" href="../reveal.js/dist/reset.css">
+<link rel="stylesheet" href="../reveal.js/dist/reveal.css">
+<link rel="stylesheet" href="../reveal.js/dist/theme/white.css" id="theme">
+<link rel="stylesheet" href="../reveal.js/css/local.css">
+
+<!-- Theme used for syntax highlighting of code -->
+<link rel="stylesheet" href="../reveal.js/lib/css/vs.css">
+
+<style>
+.multiCol {
+    display: table;
+    table-layout: fixed; // don't fudge depending on content
+    width: 100%;
+text-align: left; // matter of taste, makes imho sense
+}
+.multiCol .col {
+        display: table-cell;
+        vertical-align: top;
+        width: 50%;
+        padding: 2% 0 2% 3%; // some vertical, and between columns
+        &:first-of-type { padding-left: 0; } // there's nothing before col1
+}
+.multiCol .col p {
+font-size: 50%;
+}
+.multiCol .col h4 {
+font-size: 50%;
+}
+.multiCol .col img {
+    max-width: 200px;
+    max-height: 130px;
+}
+
+</style>
+
+</head>
+
+<!-- Start of presentation --> 
+<body>
+<div class="reveal">
+<div class="slides">
+  
+  <section>
+
+  <h1 style = "text-transform: none !important">CUDA Libraries</h1>
+  <br>
+  <p>Material by: Alan Gray, Rupert Nash </p>
+  <img class = "plain" src ="../reveal.js/img/epcc_logo.png" alt = "EPCC Logo" />
+
+  </section>
+
+  <section>
+  <h3>Computational Libraries</h3>
+  <ul>
+    <li>There are many computational operations that are relevant for
+    multiple problems</li>
+    
+    <li>It is not productive for each user to implement their own
+    version from scratch</li>
+    
+    <li>It is also usually very complex to implement in a way that
+    gets optimal performance</li>
+  </ul>
+  </section>
+
+  <section>
+  <h3>Solution: re-usable libraries</h3>
+  <ul>
+    <li>User just integrates call to library function within code</li>
+    <li>Obviously only works if desired library exists</li>
+    <li>Library implementation is optimised for platform in use</li>
+    <li>Obviously only if desired library is optimised!</li>
+  </ul>
+  
+  <p>Many CPU libraries have developed and in use for many years and
+  an increasing number of GPU libraries are now available</p>
+  </section>
+  
+  <section>
+  <h3>Simple Example: Matrix Multiplication</h3>
+  <img src="matmul.svg" class="plain" style="float: right;"/>
+  <ul style="display: block;">
+    
+    <!-- <li>Basic linear algebra simple to implement by hand, but results -->
+    <!-- will be sub-optimal</li> -->
+
+    <li>Basic Linear Algebra Subprograms (BLAS) has been around since
+    1979, and provides a range of basic linear algebra operations -
+    optimised for modern CPUs</li>
+
+    <li>cuBLAS, a GPU-accelerated implementation, is available as part
+    of the CUDA distribution</li>
+
+    <li>GPUs are well suited to these highly parallel operations and
+    much faster that CPUs when the matrices are large</li>
+  </ul>
+  </section>
+
+  <section>
+  <h3>Simple Example: Matrix Multiplication</h3>
+
+  <ul>
+    
+    <li>Other more complex linear algebra operations (matrix
+    inversion, eigenvalue determination, etc) can be built out of
+    multiple BLAS operations)</li>
+
+    <li>On CPU can use one of several LAPACK implementations</li>
+
+    <li>On GPU can use <a href="https://icl.utk.edu/magma/">MAGMA</a>
+    (open source)</li>
+
+    <li>Curated list of libraries: <a
+    href="http://www.netlib.org/utk/people/JackDongarra/la-sw.html">http://www.netlib.org/utk/people/JackDongarra/la-sw.html</a></li>
+  </ul>
+  </section>
+
+  <section>
+  <h3>CUDA includes many libraries</h3>
+
+  <p>See <a
+  href="https://developer.nvidia.com/gpu-accelerated-libraries">the
+  NVIDIA website for them all.</a></p>
+
+  </section>
+
+<section>
+  <h2 id="linear-algebra">
+    Linear Algebra and Math Libraries
+  </h2>
+  <div class="multiCol">
+    <div class="col">
+      <img src="CUDALibs.jpg" />
+        <h4>cuBLAS</h4>
+      <p>GPU-accelerated standard BLAS library</p>
+    </div>
+    <div class="col">
+        <img src="KeyVisual_Primary_verysm.png" />
+        <h4>CUDA Math Library</h4>
+      <p>GPU-accelerated standard mathematical function library</p>
+    </div>
+    <div class="col">
+        <img src="CUSPARSE_340_190_2.jpg" />
+        <h4>cuSPARSE</h4>
+      <p>GPU-accelerated BLAS for sparse matrices</p>
+    </div>
+    </div>
+    </section>
+
+<section>
+  <h2 id="linear-algebra">
+    Linear Algebra and Math Libraries
+  </h2>
+  <div class="multiCol">
+    <div class="col">
+        <img src="cuRandImage.png" />
+        <h4>cuRAND</h4>
+      <p>GPU-accelerated random number generation (RNG)</p>
+    </div>
+    <div class="col">
+        <img src="KeyVisual_Primary_verysm.png" />
+        <h4>cuSOLVER</h4>
+      <p>Dense and sparse direct solvers for Computer Vision, CFD, Computational Chemistry, and Linear Optimization applications</p>
+    </div>
+    <div class="col">
+      <img src="amgx_prod_logo340.jpg" />
+      <h4>AmgX</h4>
+      <p>GPU accelerated linear solvers for simulations and implicit unstructured methods</p>
+    </div>
+  </div>
+
+</section>
+
+<section>
+
+  <h2 id="signal">
+    Signal, Image and Video Libraries
+  </h2>
+  <div class="multiCol">
+    <div class="col">
+        <img src="cuff_ampchart.jpg" />
+        <h4>cuFFT</h4>
+      <p>GPU-accelerated library for Fast Fourier Transforms</p>
+    </div>
+    <div class="col">
+        <img src="nppeye.jpg" />
+        <h4>NVIDIA Performance Primitives</h4>
+      <p>GPU-accelerated library for image and signal processing</p>
+    </div>
+    <div class="col">
+        <img src="videocodecimagesmall.jpg" />
+        <h4>NVIDIA Codec SDK</h4>
+      <p>High-performance APIs and tools for hardware accelerated video encode and decode</p>
+    </div>
+  </div>
+
+</section>
+
+<section>
+  <h2 id="deep-learning">Deep Learning Libraries</h2>
+<div class="multiCol">
+<div class="col">
+  <img src="cuDNN_logo_340x190.jpg" />
+  <p>GPU-accelerated library of primitives for deep neural networks</p>
+</div>
+<div class="col">
+  <img src="tensorRT.png" />
+  <p>GPU-accelerated neural network inference library for building deep learning applications</p>
+</div>
+<div class="col">
+  <img src="deepstreamSDK.png" />
+  </a>
+  <p>Advanced GPU-accelerated video inference library</p>
+</div>
+</div>
+
+</section>
+
+<section>
+
+  <h2 id="parallel-alg">
+    Parallel Algorithm Libraries
+  </h2>
+  <div class="multiCol">
+    <div class="col">
+        <img src="nccl.png" />
+        <h4>NCCL</h4>
+      <p>Collective Communications Library for scaling apps across multiple GPUs and nodes</p>
+    </div>
+    <div class="col">
+      <img src="nv_graph_01.png">
+        <h4>nvGRAPH</h4>
+      <p>GPU-accelerated library for graph analytics</p>
+    </div>
+    <div class="col">
+        <img src="Thrust_newlogosmall.png" />
+        <h4>Thrust</h4>
+      <p>GPU-accelerated library of parallel algorithms and data structures</p>
+    </div>
+    <div class="col">
+      <img src="cub.png" />
+      <h4>CUB</h4>
+      <p>Cooperative primitives for CUDA C++, such as sort, reduce,
+    or scan, across warps, blocks, and whole devices.</p>
+  </div>
+</section>
+
+<section>
+
+  <h2>
+    Partner Libraries
+  </h2>
+  <div class="multiCol">
+    <div class="col">
+      <img src="OpenCV_Logo_340.jpg" />
+      <p>GPU-accelerated open-source library for computer vision, image processing and machine learning, now supporting real-time operation</p>
+    </div>
+    <div class="col">
+      <img src="ffmpeg-220.png" />
+      <p>Open-source multi-media framework with a library of plugins for audio and video processing</p>
+    </div>
+    <div class="col">
+      <img src="arrayfire_logo340b.jpg" />
+      <p>GPU-accelerated open source library for matrix, signal, and image processing</p>
+    </div>
+  </div>
+</section>
+
+<section>
+
+  <h2>
+    Partner Libraries
+  </h2>
+  <div class="multiCol">
+    <div class="col">
+      <img src="MAGMA-Logo.jpg" />
+      <p>GPU-accelerated linear algebra routines for heterogeneous architectures, by Magma</p>
+    </div>
+    <div class="col">
+      <img src="IMSL_340new.jpg" />
+      <p>GPU-accelerated open-source Fortran library with functions for math, signal and image processing, statistics, by RogueWave</p>
+    </div>
+    <div class="col">
+          <img src="Gunrock-logo-340b.png" />
+      <p>Library for graph-processing designed specifically for the GPU</p>
+    </div>
+  </div>
+</section>
+
+<section>
+
+  <h2>
+    Partner Libraries
+  </h2>
+  <div class="multiCol">
+    <div class="col">
+          <img src="SuiteSparse_CHOLMOD_340x190.jpg" />
+      <p>GPU-accelerated functions for sparse direct solvers, included in SuiteSparse linear algebra package authored by Prof. </p>
+    </div>
+    <div class="col">
+      <img src="CULAtoolslogo.jpg" />
+      <p>GPU-accelerated linear algebra library by EM Photonics</p>
+    </div>
+    <div class="col">
+      <img src="hiplarlogo_prod.jpg" />
+      <p>GPU-accelerated linear algebra (LA) routines for the R platform for statistical computing supporting heterogeneous</p>
+    </div>
+  </div>
+</section>
+
+<section>
+
+  <h2>
+    Partner Libraries
+  </h2>
+  <div class="multiCol">
+    <div class="col">
+          <img src="gpp_logo_340_190.png" />
+      <p>GPU-accelerated computational geometry engine for advanced GIS, EDA, computer vision, and motion planning, by Fixstars</p>
+    </div>
+    <div class="col">
+          <img src="paralution-lib.jpg" />
+      <p>GPU-accelerated library for sparse iterative methods by Paralution</p>
+    </div>
+    <div class="col">
+          <img src="sundog-logo-340.jpg" />
+      <p>Real-time visual simulation of oceans, water bodies in  games, simulation, and training applications, by Triton</p>
+    </div>
+    </div>
+    </section>
+</div>
+</div>
+
+<!-- End of presentation -->
+
+<script src="../reveal.js/dist/reveal.js"></script>
+<script src="../reveal.js/plugin/math/math.js"></script>
+<script src="../reveal.js/plugin/highlight/highlight.js"></script>
+
+<script>
+// More info about config & dependencies:
+// - https://github.com/hakimel/reveal.js#configuration
+// - https://github.com/hakimel/reveal.js#dependencies
+Reveal.initialize({
+  controls: false,
+  slideNumber: true,
+  center: false,
+  plugins: [ RevealMath, RevealHighlight ]
+});
+</script>
+
+</body>
+</html>
