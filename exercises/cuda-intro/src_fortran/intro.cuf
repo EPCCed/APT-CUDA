@@ -50,6 +50,7 @@ program intro
 
   ! Allocate memory on device
   ! Part 1A: allocate device memory
+  allocate (d_a(ARRAY_SIZE)) 
 
   ! Initialise host arrays
   do i = 1, ARRAY_SIZE
@@ -59,12 +60,17 @@ program intro
 
   ! Copy input array from host to GPU
   ! Part 1B: copy host array h_a to device array d_a
+  d_a = h_a(1:ARRAY_SIZE)
 
   ! Run the kernel on the GPU
   ! Part 2A: configure and launch kernel (un-comment and complete)
   ! blocksPerGrid  = dim3( , , )
   ! threadsPerBlock = dim3( , , )
   ! call g_negate <<<  >>> ( , )
+  blocksPerGrid  = dim3(NUM_BLOCKS, 1, 1) 
+  threadsPerBlock = dim3(THREADS_PER_BLOCK, 1, 1) 
+  call g_negate_multiblock <<< blocksPerGrid, threadsPerBlock >>> & 
+       (ARRAY_SIZE, d_a) 
 
   ! wait for all threads to complete and check for errors
   istat = cudaDeviceSynchronize()
@@ -72,6 +78,7 @@ program intro
 
   ! copy the result array back to the host
   ! Part 1C: copy device array d_a to host array h_out
+  h_out = d_a(1:ARRAY_SIZE)
 
   ! Print out the result
   write (*,*) "Results: "
@@ -79,6 +86,7 @@ program intro
 
   ! Free device buffer
   ! Part 1D: free d_a 
+  if(allocated(d_a)) deallocate (d_a) 
 
   ! Free host buffers
   deallocate (h_a)

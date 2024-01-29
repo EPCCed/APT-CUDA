@@ -22,8 +22,11 @@ contains
     integer, value, intent(in)                 :: size_aa
     integer, dimension(size_aa), intent(inout) :: aa
 
+    integer :: idx 
 
+    idx = threadidx%x 
 
+    aa(idx) = -1*aa(idx) 
   end subroutine g_negate
 
   !
@@ -35,8 +38,11 @@ contains
     integer, value, intent(in)                 :: size_aa
     integer, dimension(size_aa), intent(inout) :: aa
 
+    integer :: idx 
 
+    idx = threadidx%x + ((blockidx%x-1) * blockdim%x) 
 
+    aa(idx) = -1*aa(idx) 
   end subroutine g_negate_multiblock
 
 end module array_negate
