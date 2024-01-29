@@ -76,12 +76,21 @@ int main(int argc, char *argv[]) {
   }
   
   /* CUDA decomposition */
+#ifdef SOLUTION 
+  const dim3 threadsPerBlock(16, 16, 1);
+  if (N % threadsPerBlock.x != 0 || N % threadsPerBlock.y != 0 ) {
+    printf("Error: threadsPerBlock must exactly divide N in each dimension\n");
+    exit(1);
+  }
+  const dim3 blocksPerGrid(N / threadsPerBlock.x, N /threadsPerBlock.y, 1);
+#else 
   const dim3 threadsPerBlock(256, 1, 1);
   if ( N % threadsPerBlock.x != 0 ){
     printf("Error: threadsPerBlock must exactly divide N\n");
     exit(1);
   }
   const dim3 blocksPerGrid(N / threadsPerBlock.x, 1, 1);
+#endif 
 
   printf("Blocks: %d %d %d\n",
 	 blocksPerGrid.x, blocksPerGrid.y, blocksPerGrid.z);
@@ -101,20 +110,33 @@ int main(int argc, char *argv[]) {
   for (i = 0; i < ITERATIONS; i++) {
 
     /* run the kernel */
+#ifdef SOLUTION 
+    inverseEdgeDetect2D<<< blocksPerGrid, threadsPerBlock >>>((float (*)[N+2]) d_output, (float (*)[N+2]) d_input, (float (*)[N+2]) d_edge); 
+#else 
     inverseEdgeDetect<<< blocksPerGrid, threadsPerBlock >>>((float (*)[N+2]) d_output, (float (*)[N+2]) d_input, (float (*)[N+2]) d_edge);
+#endif 
  
     cudaDeviceSynchronize();
 
+#ifdef SOLUTION 
+    /* copy the output to the input on the device, */ 
+    /*  ready for the next iteration */ 
+    cudaMemcpy(d_input, d_output, memSize, cudaMemcpyDeviceToDevice); 
 
+#else 
     /* copy the output data from device to host */
     cudaMemcpy(output, d_output, memSize, cudaMemcpyDeviceToHost);
 
     /* copy this same data from host to input buffer on device */
     /*  ready for the next iteration */ 
     cudaMemcpy( d_input, output, memSize, cudaMemcpyHostToDevice);
+#endif 
 
   }
 
+#ifdef SOLUTION 
+  cudaMemcpy(output, d_input, memSize, cudaMemcpyDeviceToHost); 
+#endif 
 
   end_time_inc_data = get_current_time();
 

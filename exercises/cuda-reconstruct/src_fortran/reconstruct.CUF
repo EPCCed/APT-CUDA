@@ -8,6 +8,7 @@
 !
 !     14/APR/11 - MGB created initial FORTRAN90 port
 
+#define SOLUTION 
 
 ! ------------
 ! Main routine
@@ -23,6 +24,7 @@ program reverse
 
   ! CUDA decomposition
   integer :: TPB
+  integer :: TPB_X, TPB_Y 
   type(dim3) :: blocksPerGrid, threadsPerBlock
 
   ! Number of iterations to run
@@ -102,6 +104,18 @@ program reverse
 
 ! CUDA decomposition
 
+#ifdef SOLUTION  
+ 
+ TPB_X=16  
+ TPB_Y=16  
+ if( (mod(N,TPB_X) .ne. 0) .or.  (mod(N,TPB_Y) .ne. 0)  ) then  
+    stop 'Error: threads per block must exactly divide N in each dimension'  
+ end if  
+  
+ blocksPerGrid  = dim3(N/TPB_X,  N/TPB_Y,  1)  
+ threadsPerBlock = dim3(TPB_X, TPB_Y, 1)  
+ 
+#else  
 
  TPB=256
  if( mod(N,TPB) .ne. 0 ) then
@@ -111,6 +125,7 @@ program reverse
  blocksPerGrid  = dim3(N/TPB,  1,  1)
  threadsPerBlock = dim3(TPB, 1, 1)
 
+#endif  
 
 
  print *, "Blocks:  ", blocksPerGrid
@@ -131,15 +146,25 @@ program reverse
   ! Run GPU kernel
   !
 
+#ifdef SOLUTION  
+     call inverseEdgeDetect2D <<< blocksPerGrid, threadsPerBlock >>> & 
+          (N, N, d_input, d_output, d_edge) 
+#else 
       call inverseEdgeDetect <<< blocksPerGrid, threadsPerblock >>> &
            (N, N, d_input, d_output, d_edge)
+#endif 
 
      istat = cudaDeviceSynchronize()
 
+#ifdef SOLUTION  
+!copy output to input directly on device 
+     d_input=d_output 
+#else 
      ! Copy the data back from the output buffer on the device
      output = d_output(1:N+2,1:N+2)
      ! Copy the new data to the input buffer on the device
      d_input    = output(1:N+2,1:N+2)
+#endif 
 
   end do
 

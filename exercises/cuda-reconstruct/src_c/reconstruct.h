@@ -7,6 +7,7 @@
  */
 #ifndef EPCC_CUDA_TRAINING_RECONSTRUCT_H
 #define EPCC_CUDA_TRAINING_RECONSTRUCT_H
+#define SOLUTION 
 
 /* dimension of the image is NxX */
 #define N 2048
